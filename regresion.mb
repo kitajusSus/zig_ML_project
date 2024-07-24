@@ -1,0 +1,40 @@
+idk what to do about it i will save it for later
+```zig
+pub fn linear_regression(X: [][]f64, y: []f64, learning_rate: f64, num_iterations: usize) -> []f64 {
+    var weights: []f64 = undefined;
+    for (X[0]) |_| {
+        weights = weights ++ [1]f64{0.0};
+    }
+    var bias: f64 = 0.0;
+
+    for (0..num_iterations) |_| {
+        var gradient_weights: []f64 = undefined;
+        var gradient_bias: f64 = 0.0;
+
+        for (X) |x, i| {
+            const prediction = dotProduct(x, weights) + bias;
+            const error = prediction - y[i];
+
+            for (x) |val, j| {
+                gradient_weights = gradient_weights ++ [1]f64{error * val};
+            }
+            gradient_bias += error;
+        }
+
+        for (weights) |_, i| {
+            weights[i] -= learning_rate * gradient_weights[i];
+        }
+        bias -= learning_rate * gradient_bias;
+    }
+
+    return weights ++ [1]f64{bias};
+}
+
+fn dotProduct(a: []f64, b: []f64) -> f64 {
+    var result: f64 = 0.0;
+    for (a) |val, i| {
+        result += val * b[i];
+    }
+    return result;
+}
+```
