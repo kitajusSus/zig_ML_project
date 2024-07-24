@@ -38,3 +38,31 @@ fn dotProduct(a: []f64, b: []f64) -> f64 {
     return result;
 }
 ```
+
+
+
+
+`linear_regression(X: [][]f64, y: []f64, learning_rate: f64, num_iterations: usize) -> []f64`  : Performs linear regression using gradient descent.
+
+**Example usage:**
+
+```zig
+const ballin = @import("ballin.zig");
+
+pub fn main() anyerror!void {
+    const X = [_][]f64{
+        [_]f64{1.0, 2.0},
+        [_]f64{3.0, 4.0},
+        [_]f64{5.0, 6.0},
+    };
+    const y = [_]f64{2.0, 4.0, 6.0};
+
+    const learning_rate: f64 = 0.01;
+    const num_iterations: usize = 1000;
+
+    const weights = ballin.linear_regression(X, y, learning_rate, num_iterations);
+    std.debug.print("Weights: {}\n", .{weights});
+}
+
+This implementation of linear regression uses gradient descent to optimize the weights and bias. The `linear_regression` function takes in the feature matrix `x` and the vector  `y` the learning rate, and the number of iterations as input, and returns the optimized weights and bias.
+
