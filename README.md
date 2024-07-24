@@ -36,14 +36,7 @@ just matrix you know what is this
 #### Functions
 `init(data: []f64, rows: usize, cols: usize)` creates new matrix with given data and dimentions
 `mul(other: Matrix)` multiplies two marix's (english is not my first language idk how to write this)
-#### Example
-```zig
-var matrix1 = Matrix.init([_]f64{ 1, 2, 3, 4 }, 2, 2);
-var matrix2 = Matrix.init([_]f64{ 5, 6, 7, 8 }, 2, 2);
-var result = matrix1.mul(matrix2);
-```
-
-# How to use? // Example program
+#### Example program
 ```zig
 const std = @import("std");
 const ballin = @import("ballin.zig");
@@ -67,6 +60,45 @@ pub fn main() !void {
     std.debug.print("\n", .{});
 }
 ```
+**Update 0.2**
+## Functions added in 0.2
+
+* `sigmoid(x: f64) -> f64` Computes the sigmoid activation function.
+* `softmax(x: []f64) -> []f64`Computes the softmax activation function.
+* `relu(x: f64) -> f64`Computes the rectified linear unit (ReLU) activation function.
+* `cross_entropy_loss(y_true: []f64, y_pred: []f64) -> f64` Computes the cross-entropy loss function.
+
+* `mean_squared_error(y_true: []f64, y_pred: []f64) -> f64` Computes the mean squared error (MSE) loss function.
+## Example program 2
+
+```zig
+const ballin = @import("ballin.zig");
+
+pub fn main() anyerror!void {
+    const x = [_]f64{1.0, 2.0, 3.0};
+    const y_true = [_]f64{0.5, 0.2, 0.3};
+    const y_pred = [_]f64{0.4, 0.3, 0.3};
+
+    const sigmoid_result = ballin.sigmoid(x[0]);
+    std.debug.print("Sigmoid result: {}\n", .{sigmoid_result});
+
+    const softmax_result = ballin.softmax(x);
+    std.debug.print("Softmax result: {}\n", .{softmax_result});
+
+    const relu_result = ballin.relu(x[0]);
+    std.debug.print("ReLU result: {}\n", .{relu_result});
+
+    const cross_entropy_loss_result = ballin.cross_entropy_loss(y_true, y_pred);
+    std.debug.print("Cross-entropy loss: {}\n", .{cross_entropy_loss_result});
+
+    const mean_squared_error_result = ballin.mean_squared_error(y_true, y_pred);
+    std.debug.print("Mean squared error: {}\n", .{mean_squared_error_result});
+}
+```
+
+
+
+
 
 
 # What Needs to be Implemented
