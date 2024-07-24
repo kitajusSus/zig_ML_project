@@ -21,9 +21,9 @@
 Update 0.1:
 <placeholder>
 
-#What Needs to be Implemented
+# What Needs to be Implemented
 
-**There are many things that still need to be implemented, including:**
+
 
 * More machine learning algorithms
 * Support for more data types
