@@ -67,3 +67,45 @@ test "matrix mul" {
     var result = matrix1.mul(matrix2);
     try std.testing.expectEqualSlices(f64, result.data, [_]f64{ 19, 22, 43, 50 });
 }
+
+
+
+pub fn sigmoid(x: f64) -> f64 {
+    return 1.0 / (1.0 + std.math.exp(-x));
+}
+
+pub fn softmax(x: []f64) -> []f64 {
+    var sum: f64 = 0.0;
+    for (x) |val| {
+        sum += std.math.exp(val);
+    }
+    var result: []f64 = undefined;
+    for (x) |val| {
+        result = result ++ [1]f64{std.math.exp(val) / sum};
+    }
+    return result;
+}
+
+pub fn relu(x: f64) -> f64 {
+    if (x > 0.0) {
+        return x;
+    } else {
+        return 0.0;
+    }
+}
+
+pub fn cross_entropy_loss(y_true: []f64, y_pred: []f64) -> f64 {
+    var loss: f64 = 0.0;
+    for (y_true) |val_true, i| {
+        loss += val_true * std.math.log(y_pred[i]);
+    }
+    return -loss;
+}
+
+pub fn mean_squared_error(y_true: []f64, y_pred: []f64) -> f64 {
+    var loss: f64 = 0.0;
+    for (y_true) |val_true, i| {
+        loss += (val_true - y_pred[i]) * (val_true - y_pred[i]);
+    }
+    return loss / @intToFloat(f64, y_true.len);
+}
