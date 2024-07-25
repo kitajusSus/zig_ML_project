@@ -163,3 +163,56 @@ pub fn dropout(input: []f64, probability: f64) -> []f64 {
     }
     return output;
 }
+
+pub fn Tensor {
+    data: []f64,
+    shape: []u32,
+
+    pub fn init(data: []f64, shape: []u32) -> Tensor {
+        return Tensor{
+            .data = data,
+            .shape = shape,
+        };
+    }
+
+    pub fn matmul(self: *Tensor, other: *Tensor) -> Tensor {
+        var result: []f64 = undefined;
+        result.len = self.shape[0] * other.shape[1];
+        for (self.data) |aval, i| {
+            for (other.data) |bval, j| {
+                result[i * other.shape[1] + j] += aval * bval;
+            }
+        }
+        return Tensor.init(result, [_]u32{self.shape[0], other.shape[1]});
+    }
+};
+
+pub fn Metric {
+    name: []const u8,
+    value: f64,
+
+    pub fn init(name: []const u8, value: f64) -> Metric {
+        return Metric{
+            .name = name,
+            .value = value,
+        };
+    }
+};
+
+pub fn accuracy(y_pred: []f64, y_true: []f64) -> Metric {
+    var correct: u32 = 0;
+    for (y_pred) |yp, i| {
+        if (yp == y_true[i]) {
+            correct += 1;
+        }
+    }
+    return Metric.init("accuracy", @intToFloat(f64, correct) / y_pred.len);
+}
+
+pub fn mean_squared_error(y_pred: []f64, y_true: []f64) -> Metric {
+    var sum: f64 = 0.0;
+    for (y_pred) |yp, i| {
+        sum += (yp - y_true[i]) * (yp - y_true[i]);
+    }
+    return Metric.init("mean_squared_error", sum / y_pred.len);
+}
