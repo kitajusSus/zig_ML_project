@@ -1,77 +1,27 @@
 const std = @import("std");
 
-pub const Tensor = struct {
-    data: []f64,
-    shape: []usize,
-
-    pub fn init(data: []f64, shape: []usize) Tensor {
-        return Tensor{
-            .data = data,
-            .shape = shape,
-        };
-    }
-
-    pub fn mul(self: Tensor, other: Tensor) Tensor {
-        assert(self.shape.len == other.shape.len);
-        var result = try std.ArrayList(f64).initCapacity(std.heap.page_allocator, self.shape[0] * other.shape[1]);
-        errdefer result.deinit();
-
-        for (self.data) |val, i| {
-            for (other.data) |oval, j| {
-                result.append(val * oval);
-            }
-        }
-
-        return Tensor.init(result.items, self.shape);
-    }
-};
-
-pub const Matrix = struct {
-    data: []f64,
-    rows: usize,
-    cols: usize,
-
-    pub fn init(data: []f64, rows: usize, cols: usize) Matrix {
-        return Matrix{
-            .data = data,
-            .rows = rows,
-            .cols = cols,
-        };
-    }
-
-    pub fn mul(self: Matrix, other: Matrix) Matrix {
-        assert(self.cols == other.rows);
-        var result = try std.ArrayList(f64).initCapacity(std.heap.page_allocator, self.rows * other.cols);
-        errdefer result.deinit();
-
-        for (self.data) |val, i| {
-            for (other.data) |oval, j| {
-                result.append(val * oval);
-            }
-        }
-
-        return Matrix.init(result.items, self.rows, other.cols);
-    }
-};
-
-test "tensor mul" {
-    var tensor1 = Tensor.init([_]f64{ 1, 2, 3 }, [_]usize{ 3 });
-    var tensor2 = Tensor.init([_]f64{ 4, 5, 6 }, [_]usize{ 3 });
-    var result = tensor1.mul(tensor2);
-    try std.testing.expectEqualSlices(f64, result.data, [_]f64{ 4, 10, 18 });
-}
-
-test "matrix mul" {
-    var matrix1 = Matrix.init([_]f64{ 1, 2, 3, 4 }, 2, 2);
-    var matrix2 = Matrix.init([_]f64{ 5, 6, 7, 8 }, 2, 2);
-    var result = matrix1.mul(matrix2);
-    try std.testing.expectEqualSlices(f64, result.data, [_]f64{ 19, 22, 43, 50 });
-}
-
-
-
 pub fn sigmoid(x: f64) -> f64 {
     return 1.0 / (1.0 + std.math.exp(-x));
+}
+
+pub fn sigmoid_derivative(x: f64) -> f64 {
+    return x * (1.0 - x);
+}
+
+pub fn relu(x: f64) -> f64 {
+    return if (x > 0.0) x else 0.0;
+}
+
+pub fn relu_derivative(x: f64) -> f64 {
+    return if (x > 0.0) 1.0 else 0.0;
+}
+
+pub fn tanh(x: f64) -> f64 {
+    return 2.0 / (1.0 + std.math.exp(-2.0 * x)) - 1.0;
+}
+
+pub fn tanh_derivative(x: f64) -> f64 {
+    return 1.0 - x * x;
 }
 
 pub fn softmax(x: []f64) -> []f64 {
@@ -80,32 +30,136 @@ pub fn softmax(x: []f64) -> []f64 {
         sum += std.math.exp(val);
     }
     var result: []f64 = undefined;
-    for (x) |val| {
-        result = result ++ [1]f64{std.math.exp(val) / sum};
+    result.len = x.len;
+    for (x) |val, i| {
+        result[i] = std.math.exp(val) / sum;
     }
     return result;
 }
 
-pub fn relu(x: f64) -> f64 {
-    if (x > 0.0) {
-        return x;
-    } else {
-        return 0.0;
+pub fn NeuralNetwork {
+    layers: [][]f64,
+    weights: [][]f64,
+    biases: [][]f64,
+    optimizer: Optimizer,
+
+    pub fn init(layers: [][]f64, weights: [][]f64, biases: [][]f64, optimizer: Optimizer) -> NeuralNetwork {
+        return NeuralNetwork{
+            .layers = layers,
+            .weights = weights,
+            .biases = biases,
+            .optimizer = optimizer,
+        };
     }
+
+    pub fn forward(self: *NeuralNetwork, inputs: []f64) -> []f64 {
+        var layer: []f64 = inputs;
+        for (self.layers) |_, i| {
+            layer = dot(layer, self.weights[i]) + self.biases[i];
+            layer = switch (i) {
+                0 => sigmoid(layer),
+                1 => relu(layer),
+                else => tanh(layer),
+            };
+        }
+        return layer;
+    }
+
+    pub fn train(self: *NeuralNetwork, inputs: []f64, targets: []f64) -> void {
+        var layer: []f64 = inputs;
+        var errors: [][]f64 = undefined;
+        errors.len = self.layers.len;
+        for (self.layers) |_, i| {
+            layer = dot(layer, self.weights[i]) + self.biases[i];
+            layer = switch (i) {
+                0 => sigmoid(layer),
+                1 => relu(layer),
+                else => tanh(layer),
+            };
+            errors[i] = targets - layer;
+        }
+        self.optimizer.update(self, errors);
+    }
+};
+
+pub fn Optimizer {
+    learning_rate: f64,
+
+    pub fn init(learning_rate: f64) -> Optimizer {
+        return Optimizer{
+            .learning_rate = learning_rate,
+        };
+    }
+
+    pub fn update(self: *Optimizer, nn: *NeuralNetwork, errors: [][]f64) -> void {
+        for (nn.layers) |_, i| {
+            nn.weights[i] += self.learning_rate * dot(transpose(nn.layers[i]), errors[i]);
+            nn.biases[i] += self.learning_rate * errors[i];
+        }
+    }
+};
+
+pub fn dot(a: []f64, b: []f64) -> []f64 {
+    var result: []f64 = undefined;
+    result.len = a.len;
+    for (a) |aval, i| {
+        result[i] = 0.0;
+        for (b) |bval, j| {
+            result[i] += aval * bval;
+        }
+    }
+    return result;
 }
 
-pub fn cross_entropy_loss(y_true: []f64, y_pred: []f64) -> f64 {
-    var loss: f64 = 0.0;
-    for (y_true) |val_true, i| {
-        loss += val_true * std.math.log(y_pred[i]);
+pub fn transpose(a: []f64) -> []f64 {
+    var result: []f64 = undefined;
+    result.len = a.len;
+    for (a) |aval, i| {
+        result[i] = 0.0;
+        for (a) |bval, j| {
+            result[i * a.len + j] = aval * bval;
+        }
     }
-    return -loss;
+    return result;
 }
 
-pub fn mean_squared_error(y_true: []f64, y_pred: []f64) -> f64 {
-    var loss: f64 = 0.0;
-    for (y_true) |val_true, i| {
-        loss += (val_true - y_pred[i]) * (val_true - y_pred[i]);
+pub fn conv2d(input: []f64, kernel: []f64, stride: u32) -> []f64 {
+    var output: []f64 = undefined;
+    output.len = (input.len - kernel.len) / stride + 1;
+    for (input) |ival, i| {
+        for (kernel) |kval, j| {
+            output[i / stride * output.len + j / stride] += ival * kval;
+        }
     }
-    return loss / @intToFloat(f64, y_true.len);
+    return output;
+}
+
+pub fn max_pooling(input: []f64, kernel_size: u32, stride: u32) -> []f64 {
+    var output: []f64 = undefined;
+    output.len = (input.len - kernel_size) / stride + 1;
+    for (input) |ival, i| {
+        var max: f64 = ival;
+        for (input) |jval, j| {
+            if (j >= i and j < i + kernel_size) {
+                if (jval > max) {
+                    max = jval;
+                }
+            }
+        }
+        output[i / stride] = max;
+    }
+    return output;
+}
+
+pub fn dropout(input: []f64, probability: f64) -> []f64 {
+    var output: []f64 = undefined;
+    output.len = input.len;
+    for (input) |ival, i| {
+        if (std.math.random.float(f64) < probability) {
+            output[i] = 0.0;
+        } else {
+            output[i] = ival;
+        }
+    }
+    return output;
 }
